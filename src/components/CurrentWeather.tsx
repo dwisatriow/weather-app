@@ -1,9 +1,14 @@
 import { useState, useEffect } from 'react'
-import { ForecastAPIResponse, Location } from '../APIResponeTypes'
+import {
+  ForecastAPIResponse,
+  Location,
+  SearchAPIResponse,
+} from '../APIResponeTypes'
 import apiKey from '../apiKey.json'
 import _ from 'lodash'
 import Modal from './Modal'
 import { IoClose } from 'react-icons/io5'
+import { BiSearch } from 'react-icons/bi'
 import { IconContext } from 'react-icons'
 
 function CurrentWeather() {
@@ -12,6 +17,8 @@ function CurrentWeather() {
   )
   const [loading, setLoading] = useState(true)
   const [showModal, setShowModal] = useState(false)
+  const [searchParam, setSearchParam] = useState('')
+  const [searchResults, setSearchResults] = useState([] as SearchAPIResponse)
 
   useEffect(() => {
     navigator.geolocation.getCurrentPosition((position) => {
@@ -24,7 +31,15 @@ function CurrentWeather() {
       }
       requestCurrentWeather(location)
     })
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // useEffect(() => {
+  //   if (searchParam) {
+  //     searchLocation()
+  //   }
+  //   // eslint-disable-next-line react-hooks/exhaustive-deps
+  // }, [searchParam])
 
   async function requestCurrentWeather(location: Location) {
     const res = await fetch(
@@ -38,17 +53,38 @@ function CurrentWeather() {
     setForecastWeather(json)
   }
 
+  async function searchLocation(keyword: string) {
+    const res = await fetch(
+      `http://api.weatherapi.com/v1/search.json?key=${apiKey.key}&q=${keyword}`
+    )
+    const json = (await res.json()) as SearchAPIResponse
+
+    if (!_.isEmpty(json)) {
+      setSearchResults(json)
+    }
+  }
+
   function weeklyForecastOnClick() {
     setShowModal(true)
   }
 
-  console.log('<CurrentWeather />')
+  function updateLocation(newLocation: Location) {
+    setLoading(true)
+    setSearchParam('')
+    setSearchResults([])
+    requestCurrentWeather(newLocation)
+  }
+
+  function handleSearchChange(e: string) {
+    setSearchParam(e)
+    searchLocation(e)
+  }
 
   if (loading) {
     return (
       <div
         id="current-weather"
-        className="mx-auto flex h-[250px] w-[500px] flex-col items-center justify-center rounded-md bg-gradient-to-b from-sky-400 to-sky-300 p-8 text-white"
+        className="mx-auto flex h-[280px] w-[600px] flex-col items-center justify-center rounded-md bg-gradient-to-b from-sky-400 to-sky-300 p-8 text-white"
       >
         <h1 className="text-xl font-bold">Loading weather info...</h1>
       </div>
@@ -68,31 +104,70 @@ function CurrentWeather() {
   return (
     <div
       id="current-weather"
-      className="mx-auto flex h-[250px] w-[500px] flex-col justify-center rounded-md bg-gradient-to-b from-sky-400 to-sky-300 p-8 text-white"
+      className="mx-auto flex h-[280px] w-[600px] flex-col justify-center rounded-md bg-gradient-to-b from-sky-400 to-sky-300 p-8 text-white"
     >
       <h1 className="font-bold">{`${name}, ${region}, ${country}`}</h1>
       <p className="text-sm">{`as of ${last_updated.substring(11)}`}</p>
 
-      <div className="mt-2 flex items-center justify-between">
+      <div className="flex items-center justify-between">
         <p className="text-7xl">{`${temp_c}°C`}</p>
         <img
           src={conditionIcon}
           alt={conditionText}
-          className="h-auto w-[80px]"
+          className="h-auto w-[100px]"
         />
       </div>
 
       <p className="font-bold">{conditionText}</p>
-      <button
-        className="mt-6 w-fit self-end rounded bg-gradient-to-l from-sky-600 to-sky-500 px-4 py-2 text-sm font-bold"
-        onClick={weeklyForecastOnClick}
-      >
-        Weekly Forecast
-      </button>
+      <div className="mt-6 flex flex-row items-center justify-end">
+        <button
+          className="mr-auto w-fit rounded bg-gradient-to-l from-sky-600 to-sky-500 px-4 py-2 text-sm font-bold"
+          onClick={weeklyForecastOnClick}
+        >
+          Weekly Forecast
+        </button>
+
+        <div className="relative">
+          {searchResults.length > 0 ? (
+            <div className="absolute bottom-6 h-auto max-h-[200px] w-full overflow-auto rounded-t border-b-8 border-white bg-white pb-4 pt-2 text-slate-600">
+              <ul>
+                {searchResults.map((loc) => (
+                  <li className="rounded py-2 px-2 text-sm hover:cursor-pointer hover:bg-sky-200">
+                    <button
+                      className="h-full w-full text-left"
+                      onClick={() =>
+                        updateLocation({
+                          lat: loc.lat.toFixed(2),
+                          long: loc.lon.toFixed(2),
+                        })
+                      }
+                    >
+                      {loc.name}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          ) : null}
+          <input
+            type="text"
+            className="relative z-10 rounded-l p-1 text-slate-800"
+            value={searchParam}
+            onChange={(e) => handleSearchChange(e.target.value)}
+          />
+          <button className="relative z-10 rounded-r bg-gradient-to-l from-sky-600 to-sky-500 p-2 hover:cursor-default">
+            <IconContext.Provider value={{ className: '' }}>
+              <div>
+                <BiSearch />
+              </div>
+            </IconContext.Provider>
+          </button>
+        </div>
+      </div>
 
       {showModal ? (
         <Modal>
-          <div className="w-[700px] rounded bg-gradient-to-b from-sky-200 to-sky-100 p-8 text-center">
+          <div className="w-[700px] rounded bg-gradient-to-b from-sky-200 to-sky-100 p-8 text-center text-gray-800">
             <div className="flex items-center justify-between">
               <h1 className="text-lg font-bold">
                 Weekly Forecast -{' '}

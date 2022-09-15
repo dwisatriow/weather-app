@@ -1,7 +1,6 @@
 import CurrentWeather from './components/CurrentWeather'
 
 function App() {
-  console.log('<App />')
   return (
     <div
       id="app-wrapper"
