@@ -1,15 +1,11 @@
-import {
-  useEffect,
-  useRef,
-  FunctionComponent,
-  MutableRefObject,
-  PropsWithChildren,
-} from 'react'
+import { useEffect, useRef, FunctionComponent, MutableRefObject } from 'react'
 import { createPortal } from 'react-dom'
 
 const modalRoot = document.getElementById('modal')
 
-const Modal: FunctionComponent = ({ children }: PropsWithChildren<{}>) => {
+const Modal: FunctionComponent<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const elRef: MutableRefObject<HTMLDivElement | null> = useRef(null)
 
   if (!elRef.current) {
